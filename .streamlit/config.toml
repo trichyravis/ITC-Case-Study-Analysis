@@ -1,58 +1,31 @@
-[theme]
-# Theme Configuration
-# Options: light, dark, auto
-primaryColor = "#003366"        # Dark Blue - Primary theme color
-backgroundColor = "#f8f9fa"     # Light gray background
-secondaryBackgroundColor = "#ffffff"  # White for secondary elements
-textColor = "#1a1a1a"           # Dark text for readability
-font = "sans serif"             # Font family
 
-# Advanced theme colors
-# Accent color for interactive elements
-accentColor = "#FFD700"         # Gold accent
+[theme]
+primaryColor = "#003366"
+backgroundColor = "#f8f9fa"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#1a1a1a"
+font = "sans serif"
+accentColor = "#FFD700"
 
 [client]
-# Client Configuration
-toolbarMode = "viewer"          # Options: auto, viewer, minimal
-showErrorDetails = true         # Show error details to user
-showSidebarNavigation = true    # Show sidebar navigation
-allowDownloadAppAsApk = false   # Disable APK download
-hideTopBar = false              # Show top bar
+toolbarMode = "viewer"
+showErrorDetails = true
+showSidebarNavigation = true
+allowDownloadAppAsApk = false
+hideTopBar = false
 
 [logger]
-# Logging Configuration
-level = "info"                  # Options: debug, info, warning, error, critical
+level = "info"
 
 [server]
-# Server Configuration
-port = 8501                     # Port number (default)
-headless = false                # Run in headless mode
-runOnSave = true                # Rerun script when saved
-maxUploadSize = 200             # Max upload size in MB
-
-# CORS and security
-enableXsrfProtection = true     # Enable CSRF protection
-enableCORS = false              # Disable CORS (local only)
-
-# Server timeout
-serverAddress = "localhost"     # Bind to localhost (secure)
-
-[client.logging]
-# Client logging
-level = "info"
-
-[logger.loggers]
-# Specific logger configurations
-[logger.loggers."streamlit"]
-level = "info"
-
-[mapbox]
-# Mapbox configuration (if using maps)
-token = ""                      # Leave empty if not using maps
+port = 8501
+headless = false
+runOnSave = true
+maxUploadSize = 200
+enableXsrfProtection = true
+enableCORS = false
+serverAddress = "localhost"
 
 [deprecation]
-# Deprecation warnings
-showPyplotGlobalUse = false     # Disable pyplot global use warning
+showPyplotGlobalUse = false
 showfileUploaderEncoding = false
-
-═════════════════════════════════════════════════════════════════════════════════
