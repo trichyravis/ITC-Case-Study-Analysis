@@ -177,16 +177,18 @@ else:
             latest_idx = -1
             prev_idx = -2 if len(pl_df) > 1 else -1
             
-            # Find columns
+            # Find columns - check exact names from your data
             sales_col = None
             for col in pl_df.columns:
-                if 'Sales' in str(col):
+                col_str = str(col).lower().strip()
+                if 'sales' in col_str or 'revenue' in col_str:
                     sales_col = col
                     break
             
             profit_col = None
             for col in pl_df.columns:
-                if 'Net profit' in str(col):
+                col_str = str(col).lower().strip()
+                if 'net profit' in col_str:
                     profit_col = col
                     break
             
@@ -231,10 +233,10 @@ else:
                 fig = go.Figure()
                 fig.add_trace(go.Bar(x=pl_df.index, y=pl_df[sales_col], name='Revenue', marker_color='#003366'))
                 fig.update_layout(title="Annual Sales", xaxis_title="Year", yaxis_title="Sales (Cr)", height=400)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig)
             
             st.subheader("Financial Data")
-            st.dataframe(pl_df.tail(5), use_container_width=True)
+            st.dataframe(pl_df.tail(5))
         
         except Exception as e:
             st.error(f"Error: {str(e)}")
@@ -252,7 +254,7 @@ else:
             fig.add_trace(go.Scatter(x=itc_data.index, y=itc_data['Close'], mode='lines', 
                                     name='ITC Price', line=dict(color='#003366', width=2)))
             fig.update_layout(title="ITC Stock Price", xaxis_title="Date", yaxis_title="Price (INR)", height=400)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig)
             
             col1, col2, col3 = st.columns(3)
             with col1:
@@ -299,7 +301,7 @@ else:
                                     name='Volatility', line=dict(color='orange')))
             fig.update_layout(title="30-Day Rolling Volatility", xaxis_title="Date", 
                             yaxis_title="Volatility", height=400)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig)
             
             col1, col2, col3 = st.columns(3)
             with col1:
@@ -330,7 +332,7 @@ else:
             
             st.subheader("Return Distribution")
             fig = px.histogram(x=returns, nbins=50, title="Daily Returns Distribution")
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig)
         else:
             st.info("Stock data required for VAR analysis")
     
@@ -362,8 +364,17 @@ else:
         try:
             latest_idx = -1
             
-            sales_col = next((col for col in pl_df.columns if 'Sales' in str(col)), None)
-            profit_col = next((col for col in pl_df.columns if 'Net profit' in str(col)), None)
+            sales_col = None
+            for col in pl_df.columns:
+                if 'Sales' in str(col) or 'Revenue' in str(col):
+                    sales_col = col
+                    break
+            
+            profit_col = None
+            for col in pl_df.columns:
+                if 'Net profit' in str(col) or 'Net Profit' in str(col):
+                    profit_col = col
+                    break
             
             if sales_col and profit_col:
                 sales = float(pl_df[sales_col].iloc[latest_idx])
@@ -392,7 +403,11 @@ else:
         st.header("Scenario Analysis")
         
         try:
-            sales_col = next((col for col in pl_df.columns if 'Sales' in str(col)), None)
+            sales_col = None
+            for col in pl_df.columns:
+                if 'Sales' in str(col) or 'Revenue' in str(col):
+                    sales_col = col
+                    break
             
             if sales_col:
                 base_sales = float(pl_df[sales_col].iloc[-1])
