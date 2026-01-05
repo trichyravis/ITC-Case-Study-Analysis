@@ -256,10 +256,17 @@ else:
             # Chart
             if sales_row is not None:
                 st.subheader("Annual Revenue Trend")
+                
+                # Create clean dataframe for chart
+                revenue_df = pd.DataFrame({
+                    'Year': pl_df.columns.astype(str),
+                    'Sales': pl_df.loc[sales_row].values
+                })
+                
                 fig = go.Figure()
                 fig.add_trace(go.Bar(
-                    x=pl_df.columns, 
-                    y=pl_df.loc[sales_row].values, 
+                    x=revenue_df['Year'], 
+                    y=revenue_df['Sales'], 
                     name='Revenue', 
                     marker_color='#003366'
                 ))
@@ -289,14 +296,16 @@ else:
             st.subheader("ITC Stock Price (5 Years)")
             
             try:
-                # Simple direct approach - just use the data as-is
-                close_prices = itc_data['Close']
-                dates = close_prices.index
+                # Create a clean dataframe for plotting
+                plot_df = pd.DataFrame({
+                    'Date': pd.to_datetime(itc_data.index),
+                    'Close': itc_data['Close'].values
+                })
                 
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=dates, 
-                    y=close_prices.values, 
+                    x=plot_df['Date'].astype(str), 
+                    y=plot_df['Close'], 
                     mode='lines', 
                     name='ITC Price',
                     line=dict(color='#003366', width=2),
@@ -309,7 +318,8 @@ else:
                     yaxis_title="Price (INR)",
                     height=400,
                     template='plotly_white',
-                    hovermode='x unified'
+                    hovermode='x unified',
+                    xaxis={'type': 'date'}
                 )
                 st.plotly_chart(fig)
                 
@@ -395,37 +405,40 @@ else:
                 # Moving averages chart
                 st.subheader("Moving Averages Chart")
                 
-                # Calculate moving averages
-                ma_20 = itc_data['Close'].rolling(20).mean()
-                ma_50 = itc_data['Close'].rolling(50).mean()
-                ma_200 = itc_data['Close'].rolling(200).mean()
+                # Create clean dataframe for plotting
+                plot_df = pd.DataFrame({
+                    'Date': pd.to_datetime(itc_data.index),
+                    'Price': itc_data['Close'].values,
+                    'MA20': itc_data['Close'].rolling(20).mean().values,
+                    'MA50': itc_data['Close'].rolling(50).mean().values,
+                    'MA200': itc_data['Close'].rolling(200).mean().values
+                })
                 
-                # Get dates from index
-                dates = itc_data.index
-                close_prices = itc_data['Close'].values
+                # Convert dates to string for plotting
+                plot_df['Date_str'] = plot_df['Date'].astype(str)
                 
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=dates, 
-                    y=close_prices, 
+                    x=plot_df['Date_str'], 
+                    y=plot_df['Price'], 
                     name='Price', 
                     line=dict(color='black', width=1.5)
                 ))
                 fig.add_trace(go.Scatter(
-                    x=dates, 
-                    y=ma_20.values,
+                    x=plot_df['Date_str'], 
+                    y=plot_df['MA20'],
                     name='20-Day MA', 
                     line=dict(color='orange', width=2)
                 ))
                 fig.add_trace(go.Scatter(
-                    x=dates, 
-                    y=ma_50.values,
+                    x=plot_df['Date_str'], 
+                    y=plot_df['MA50'],
                     name='50-Day MA', 
                     line=dict(color='blue', width=2)
                 ))
                 fig.add_trace(go.Scatter(
-                    x=dates, 
-                    y=ma_200.values,
+                    x=plot_df['Date_str'], 
+                    y=plot_df['MA200'],
                     name='200-Day MA', 
                     line=dict(color='red', width=2)
                 ))
@@ -477,14 +490,19 @@ else:
                 # Volatility chart
                 st.subheader("Rolling 30-Day Volatility Trend")
                 
-                # Get dates from volatility series index
-                dates = volatility_30d.index
-                vol_values = volatility_30d.values * 100
+                # Create clean dataframe for volatility plotting
+                vol_df = pd.DataFrame({
+                    'Date': pd.to_datetime(volatility_30d.index),
+                    'Volatility': volatility_30d.values * 100
+                })
+                
+                # Convert dates to string for plotting
+                vol_df['Date_str'] = vol_df['Date'].astype(str)
                 
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=dates, 
-                    y=vol_values, 
+                    x=vol_df['Date_str'], 
+                    y=vol_df['Volatility'], 
                     mode='lines',
                     name='30-Day Volatility',
                     line=dict(color='#FF6B6B', width=2),
