@@ -177,32 +177,32 @@ else:
             latest_idx = -1
             prev_idx = -2 if len(pl_df) > 1 else -1
             
-            # Find columns - check exact names from your data
-            sales_col = None
-            for col in pl_df.columns:
-                col_str = str(col).lower().strip()
-                if 'sales' in col_str or 'revenue' in col_str:
-                    sales_col = col
+            # Find metric rows (search in INDEX, not columns!)
+            sales_row = None
+            for idx in pl_df.index:
+                idx_str = str(idx).lower().strip()
+                if 'sales' in idx_str or 'revenue' in idx_str:
+                    sales_row = idx
                     break
             
-            profit_col = None
-            for col in pl_df.columns:
-                col_str = str(col).lower().strip()
-                if 'net profit' in col_str:
-                    profit_col = col
+            profit_row = None
+            for idx in pl_df.index:
+                idx_str = str(idx).lower().strip()
+                if 'net profit' in idx_str:
+                    profit_row = idx
                     break
             
-            # Get values
-            if sales_col:
-                sales_latest = float(pl_df[sales_col].iloc[latest_idx])
-                sales_prev = float(pl_df[sales_col].iloc[prev_idx])
+            # Get values from latest and previous columns
+            if sales_row is not None:
+                sales_latest = float(pl_df.loc[sales_row].iloc[latest_idx])
+                sales_prev = float(pl_df.loc[sales_row].iloc[prev_idx])
                 sales_growth = ((sales_latest - sales_prev) / sales_prev * 100) if sales_prev != 0 else 0
             else:
                 sales_latest = sales_growth = 0
             
-            if profit_col:
-                profit_latest = float(pl_df[profit_col].iloc[latest_idx])
-                profit_prev = float(pl_df[profit_col].iloc[prev_idx])
+            if profit_row is not None:
+                profit_latest = float(pl_df.loc[profit_row].iloc[latest_idx])
+                profit_prev = float(pl_df.loc[profit_row].iloc[prev_idx])
                 profit_growth = ((profit_latest - profit_prev) / profit_prev * 100) if profit_prev != 0 else 0
             else:
                 profit_latest = profit_growth = 0
@@ -218,20 +218,25 @@ else:
                 margin = (profit_latest / sales_latest * 100) if sales_latest != 0 else 0
                 st.metric("Profit Margin", f"{margin:.1f}%")
             with col4:
-                if bs_df is not None:
-                    equity_col = next((col for col in bs_df.columns if 'Equity' in str(col)), None)
-                    if equity_col:
-                        equity = float(bs_df[equity_col].iloc[latest_idx])
+                if bs_df is not None and profit_row is not None:
+                    equity_row = None
+                    for idx in bs_df.index:
+                        if 'Equity' in str(idx):
+                            equity_row = idx
+                            break
+                    
+                    if equity_row is not None:
+                        equity = float(bs_df.loc[equity_row].iloc[latest_idx])
                         roe = (profit_latest / equity * 100) if equity != 0 else 0
                         st.metric("ROE", f"{roe:.1f}%")
             
             st.divider()
             
             # Chart
-            if sales_col:
+            if sales_row is not None:
                 st.subheader("Annual Revenue Trend")
                 fig = go.Figure()
-                fig.add_trace(go.Bar(x=pl_df.index, y=pl_df[sales_col], name='Revenue', marker_color='#003366'))
+                fig.add_trace(go.Bar(x=pl_df.columns, y=pl_df.loc[sales_row], name='Revenue', marker_color='#003366'))
                 fig.update_layout(title="Annual Sales", xaxis_title="Year", yaxis_title="Sales (Cr)", height=400)
                 st.plotly_chart(fig)
             
@@ -364,21 +369,22 @@ else:
         try:
             latest_idx = -1
             
-            sales_col = None
-            for col in pl_df.columns:
-                if 'Sales' in str(col) or 'Revenue' in str(col):
-                    sales_col = col
+            # Find metric rows (search in INDEX)
+            sales_row = None
+            for idx in pl_df.index:
+                if 'Sales' in str(idx) or 'Revenue' in str(idx):
+                    sales_row = idx
                     break
             
-            profit_col = None
-            for col in pl_df.columns:
-                if 'Net profit' in str(col) or 'Net Profit' in str(col):
-                    profit_col = col
+            profit_row = None
+            for idx in pl_df.index:
+                if 'Net profit' in str(idx) or 'net profit' in str(idx):
+                    profit_row = idx
                     break
             
-            if sales_col and profit_col:
-                sales = float(pl_df[sales_col].iloc[latest_idx])
-                profit = float(pl_df[profit_col].iloc[latest_idx])
+            if sales_row is not None and profit_row is not None:
+                sales = float(pl_df.loc[sales_row].iloc[latest_idx])
+                profit = float(pl_df.loc[profit_row].iloc[latest_idx])
                 
                 col1, col2, col3 = st.columns(3)
                 with col1:
@@ -403,14 +409,15 @@ else:
         st.header("Scenario Analysis")
         
         try:
-            sales_col = None
-            for col in pl_df.columns:
-                if 'Sales' in str(col) or 'Revenue' in str(col):
-                    sales_col = col
+            # Find Sales row in index
+            sales_row = None
+            for idx in pl_df.index:
+                if 'Sales' in str(idx) or 'Revenue' in str(idx):
+                    sales_row = idx
                     break
             
-            if sales_col:
-                base_sales = float(pl_df[sales_col].iloc[-1])
+            if sales_row is not None:
+                base_sales = float(pl_df.loc[sales_row].iloc[-1])
                 
                 scenarios = {"Best Case (+15%)": 0.15, "Base Case (+5%)": 0.05, "Worst Case (-5%)": -0.05}
                 
