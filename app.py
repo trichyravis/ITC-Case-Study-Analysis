@@ -291,15 +291,20 @@ else:
             try:
                 # Reset index to get dates as a column
                 df_plot = itc_data.reset_index()
-                df_plot.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Adj Close']
                 
-                # Convert to string for better date handling
+                # Rename only the date column (first column from index)
+                df_plot.rename(columns={df_plot.columns[0]: 'Date'}, inplace=True)
+                
+                # Convert date to string format
                 df_plot['Date'] = pd.to_datetime(df_plot['Date']).dt.strftime('%Y-%m-%d')
+                
+                # Get Close price (handle different possible column names)
+                close_col = 'Close' if 'Close' in df_plot.columns else df_plot.columns[4]
                 
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
                     x=df_plot['Date'], 
-                    y=df_plot['Close'], 
+                    y=df_plot[close_col], 
                     mode='lines', 
                     name='ITC Price',
                     line=dict(color='#003366', width=2),
@@ -403,8 +408,15 @@ else:
                 
                 # Reset index to get proper dates
                 df_plot = itc_data.reset_index()
-                df_plot.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Adj Close']
+                df_plot.rename(columns={df_plot.columns[0]: 'Date'}, inplace=True)
+                
+                # Convert date to string format
                 df_plot['Date'] = pd.to_datetime(df_plot['Date']).dt.strftime('%Y-%m-%d')
+                
+                # Get Close price column
+                close_col = 'Close' if 'Close' in df_plot.columns else df_plot.columns[4]
+                
+                # Add moving averages
                 df_plot['MA20'] = ma_20_vals.values
                 df_plot['MA50'] = ma_50_vals.values
                 df_plot['MA200'] = ma_200_vals.values
@@ -412,7 +424,7 @@ else:
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
                     x=df_plot['Date'], 
-                    y=df_plot['Close'], 
+                    y=df_plot[close_col], 
                     name='Price', 
                     line=dict(color='black', width=1.5)
                 ))
@@ -484,7 +496,10 @@ else:
                 
                 # Reset index to get proper dates
                 vol_plot = volatility_30d.reset_index()
-                vol_plot.columns = ['Date', 'Volatility']
+                vol_plot.rename(columns={vol_plot.columns[0]: 'Date'}, inplace=True)
+                vol_plot.rename(columns={vol_plot.columns[1]: 'Volatility'}, inplace=True)
+                
+                # Convert date to string format
                 vol_plot['Date'] = pd.to_datetime(vol_plot['Date']).dt.strftime('%Y-%m-%d')
                 vol_plot['Volatility'] = vol_plot['Volatility'] * 100
                 
