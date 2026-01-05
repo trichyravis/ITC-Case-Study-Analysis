@@ -289,13 +289,17 @@ else:
             st.subheader("ITC Stock Price (5 Years)")
             
             try:
-                # Convert date index to string for Plotly
-                dates_str = [d.strftime('%Y-%m-%d') if hasattr(d, 'strftime') else str(d) for d in itc_data.index]
+                # Reset index to get dates as a column
+                df_plot = itc_data.reset_index()
+                df_plot.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Adj Close']
+                
+                # Convert to string for better date handling
+                df_plot['Date'] = pd.to_datetime(df_plot['Date']).dt.strftime('%Y-%m-%d')
                 
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=dates_str, 
-                    y=itc_data['Close'].values, 
+                    x=df_plot['Date'], 
+                    y=df_plot['Close'], 
                     mode='lines', 
                     name='ITC Price',
                     line=dict(color='#003366', width=2),
@@ -397,31 +401,36 @@ else:
                 ma_50_vals = itc_data['Close'].rolling(50).mean()
                 ma_200_vals = itc_data['Close'].rolling(200).mean()
                 
-                # Convert date index to string
-                dates_str = [d.strftime('%Y-%m-%d') if hasattr(d, 'strftime') else str(d) for d in itc_data.index]
+                # Reset index to get proper dates
+                df_plot = itc_data.reset_index()
+                df_plot.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Adj Close']
+                df_plot['Date'] = pd.to_datetime(df_plot['Date']).dt.strftime('%Y-%m-%d')
+                df_plot['MA20'] = ma_20_vals.values
+                df_plot['MA50'] = ma_50_vals.values
+                df_plot['MA200'] = ma_200_vals.values
                 
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=dates_str, 
-                    y=itc_data['Close'].values, 
+                    x=df_plot['Date'], 
+                    y=df_plot['Close'], 
                     name='Price', 
                     line=dict(color='black', width=1.5)
                 ))
                 fig.add_trace(go.Scatter(
-                    x=dates_str, 
-                    y=ma_20_vals.values,
+                    x=df_plot['Date'], 
+                    y=df_plot['MA20'],
                     name='20-Day MA', 
                     line=dict(color='orange', width=2)
                 ))
                 fig.add_trace(go.Scatter(
-                    x=dates_str, 
-                    y=ma_50_vals.values,
+                    x=df_plot['Date'], 
+                    y=df_plot['MA50'],
                     name='50-Day MA', 
                     line=dict(color='blue', width=2)
                 ))
                 fig.add_trace(go.Scatter(
-                    x=dates_str, 
-                    y=ma_200_vals.values,
+                    x=df_plot['Date'], 
+                    y=df_plot['MA200'],
                     name='200-Day MA', 
                     line=dict(color='red', width=2)
                 ))
@@ -472,12 +481,17 @@ else:
                 
                 # Volatility chart
                 st.subheader("Rolling 30-Day Volatility Trend")
-                dates_str = [d.strftime('%Y-%m-%d') if hasattr(d, 'strftime') else str(d) for d in volatility_30d.index]
+                
+                # Reset index to get proper dates
+                vol_plot = volatility_30d.reset_index()
+                vol_plot.columns = ['Date', 'Volatility']
+                vol_plot['Date'] = pd.to_datetime(vol_plot['Date']).dt.strftime('%Y-%m-%d')
+                vol_plot['Volatility'] = vol_plot['Volatility'] * 100
                 
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=dates_str, 
-                    y=volatility_30d.values*100, 
+                    x=vol_plot['Date'], 
+                    y=vol_plot['Volatility'], 
                     mode='lines',
                     name='30-Day Volatility',
                     line=dict(color='#FF6B6B', width=2),
