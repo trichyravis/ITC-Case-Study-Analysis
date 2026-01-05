@@ -257,8 +257,20 @@ else:
             if sales_row is not None:
                 st.subheader("Annual Revenue Trend")
                 fig = go.Figure()
-                fig.add_trace(go.Bar(x=pl_df.columns, y=pl_df.loc[sales_row], name='Revenue', marker_color='#003366'))
-                fig.update_layout(title="Annual Sales", xaxis_title="Year", yaxis_title="Sales (Cr)", height=400)
+                fig.add_trace(go.Bar(
+                    x=pl_df.columns, 
+                    y=pl_df.loc[sales_row].values, 
+                    name='Revenue', 
+                    marker_color='#003366'
+                ))
+                fig.update_layout(
+                    title="Annual Sales", 
+                    xaxis_title="Year", 
+                    yaxis_title="Sales (Cr)", 
+                    height=400,
+                    template='plotly_white',
+                    hovermode='x unified'
+                )
                 st.plotly_chart(fig)
             
             st.subheader("Financial Data")
@@ -280,7 +292,7 @@ else:
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
                     x=itc_data.index, 
-                    y=itc_data['Close'], 
+                    y=itc_data['Close'].values, 
                     mode='lines', 
                     name='ITC Price',
                     line=dict(color='#003366', width=2),
@@ -292,7 +304,8 @@ else:
                     xaxis_title="Date",
                     yaxis_title="Price (INR)",
                     height=400,
-                    template='plotly_white'
+                    template='plotly_white',
+                    hovermode='x unified'
                 )
                 st.plotly_chart(fig)
                 
@@ -316,11 +329,11 @@ else:
                 st.divider()
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    price_change = current_price - itc_data['Close'].iloc[-252] if len(itc_data) > 252 else 0
-                    pct_change = (price_change / itc_data['Close'].iloc[-252] * 100) if len(itc_data) > 252 else 0
+                    price_change = current_price - float(itc_data['Close'].iloc[-252]) if len(itc_data) > 252 else 0
+                    pct_change = (price_change / float(itc_data['Close'].iloc[-252]) * 100) if len(itc_data) > 252 else 0
                     st.metric("52-Week Change", f"₹{price_change:.2f}", f"{pct_change:+.2f}%")
                 with col2:
-                    today_change = current_price - itc_data['Close'].iloc[-2] if len(itc_data) > 1 else 0
+                    today_change = current_price - float(itc_data['Close'].iloc[-2]) if len(itc_data) > 1 else 0
                     st.metric("Day Change", f"₹{today_change:.2f}")
                 with col3:
                     volume_avg = float(itc_data['Volume'].tail(20).mean()) if 'Volume' in itc_data.columns else 0
@@ -377,17 +390,43 @@ else:
                 
                 # Moving averages chart
                 st.subheader("Moving Averages Chart")
+                ma_20_vals = itc_data['Close'].rolling(20).mean()
+                ma_50_vals = itc_data['Close'].rolling(50).mean()
+                ma_200_vals = itc_data['Close'].rolling(200).mean()
+                
                 fig = go.Figure()
-                fig.add_trace(go.Scatter(x=itc_data.index, y=itc_data['Close'], 
-                                        name='Price', line=dict(color='black', width=1)))
-                fig.add_trace(go.Scatter(x=itc_data.index, y=itc_data['Close'].rolling(20).mean(),
-                                        name='20-Day MA', line=dict(color='orange', width=2)))
-                fig.add_trace(go.Scatter(x=itc_data.index, y=itc_data['Close'].rolling(50).mean(),
-                                        name='50-Day MA', line=dict(color='blue', width=2)))
-                fig.add_trace(go.Scatter(x=itc_data.index, y=itc_data['Close'].rolling(200).mean(),
-                                        name='200-Day MA', line=dict(color='red', width=2)))
-                fig.update_layout(title="Price with Moving Averages", xaxis_title="Date", 
-                                yaxis_title="Price (INR)", height=400)
+                fig.add_trace(go.Scatter(
+                    x=itc_data.index, 
+                    y=itc_data['Close'].values, 
+                    name='Price', 
+                    line=dict(color='black', width=1.5)
+                ))
+                fig.add_trace(go.Scatter(
+                    x=itc_data.index, 
+                    y=ma_20_vals.values,
+                    name='20-Day MA', 
+                    line=dict(color='orange', width=2)
+                ))
+                fig.add_trace(go.Scatter(
+                    x=itc_data.index, 
+                    y=ma_50_vals.values,
+                    name='50-Day MA', 
+                    line=dict(color='blue', width=2)
+                ))
+                fig.add_trace(go.Scatter(
+                    x=itc_data.index, 
+                    y=ma_200_vals.values,
+                    name='200-Day MA', 
+                    line=dict(color='red', width=2)
+                ))
+                fig.update_layout(
+                    title="Price with Moving Averages", 
+                    xaxis_title="Date", 
+                    yaxis_title="Price (INR)", 
+                    height=400,
+                    template='plotly_white',
+                    hovermode='x unified'
+                )
                 st.plotly_chart(fig)
             
             except Exception as e:
@@ -443,15 +482,22 @@ else:
                     title="Volatility Over Time (Annualized %)",
                     xaxis_title="Date",
                     yaxis_title="Volatility (%)",
-                    height=400
+                    height=400,
+                    template='plotly_white',
+                    hovermode='x unified'
                 )
                 st.plotly_chart(fig)
                 
                 # Volatility distribution
                 st.subheader("Volatility Distribution")
-                fig = px.histogram(volatility_30d[volatility_30d.notna()]*100, nbins=40,
-                                  title="Distribution of 30-Day Volatility",
-                                  labels={'value': 'Volatility (%)', 'count': 'Frequency'})
+                vol_clean = volatility_30d[volatility_30d.notna()].values * 100
+                fig = px.histogram(
+                    vol_clean,
+                    nbins=40,
+                    title="Distribution of 30-Day Volatility",
+                    labels={'value': 'Volatility (%)', 'count': 'Frequency'},
+                    color_discrete_sequence=['#003366']
+                )
                 st.plotly_chart(fig)
             
             except Exception as e:
@@ -491,8 +537,9 @@ else:
                 
                 # Return distribution
                 st.subheader("Daily Returns Distribution")
+                returns_pct = returns.values * 100
                 fig = px.histogram(
-                    returns*100, 
+                    returns_pct, 
                     nbins=50,
                     title="Distribution of Daily Returns (%)",
                     labels={'value': 'Daily Return (%)', 'count': 'Frequency'},
@@ -568,8 +615,9 @@ else:
                 # Tail risk visualization
                 st.subheader("Tail Risk Visualization")
                 tail_returns = returns[returns <= var_95].dropna()
+                tail_returns_pct = tail_returns.values * 100
                 fig = px.histogram(
-                    tail_returns*100,
+                    tail_returns_pct,
                     nbins=30,
                     title="Distribution of Returns Exceeding 95% VAR (Tail Risk)",
                     labels={'value': 'Daily Return (%)', 'count': 'Frequency'},
