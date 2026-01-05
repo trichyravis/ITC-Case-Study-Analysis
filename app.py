@@ -289,9 +289,12 @@ else:
             st.subheader("ITC Stock Price (5 Years)")
             
             try:
+                # Convert date index to string for Plotly
+                dates_str = [d.strftime('%Y-%m-%d') if hasattr(d, 'strftime') else str(d) for d in itc_data.index]
+                
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=itc_data.index, 
+                    x=dates_str, 
                     y=itc_data['Close'].values, 
                     mode='lines', 
                     name='ITC Price',
@@ -394,27 +397,30 @@ else:
                 ma_50_vals = itc_data['Close'].rolling(50).mean()
                 ma_200_vals = itc_data['Close'].rolling(200).mean()
                 
+                # Convert date index to string
+                dates_str = [d.strftime('%Y-%m-%d') if hasattr(d, 'strftime') else str(d) for d in itc_data.index]
+                
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=itc_data.index, 
+                    x=dates_str, 
                     y=itc_data['Close'].values, 
                     name='Price', 
                     line=dict(color='black', width=1.5)
                 ))
                 fig.add_trace(go.Scatter(
-                    x=itc_data.index, 
+                    x=dates_str, 
                     y=ma_20_vals.values,
                     name='20-Day MA', 
                     line=dict(color='orange', width=2)
                 ))
                 fig.add_trace(go.Scatter(
-                    x=itc_data.index, 
+                    x=dates_str, 
                     y=ma_50_vals.values,
                     name='50-Day MA', 
                     line=dict(color='blue', width=2)
                 ))
                 fig.add_trace(go.Scatter(
-                    x=itc_data.index, 
+                    x=dates_str, 
                     y=ma_200_vals.values,
                     name='200-Day MA', 
                     line=dict(color='red', width=2)
@@ -466,9 +472,11 @@ else:
                 
                 # Volatility chart
                 st.subheader("Rolling 30-Day Volatility Trend")
+                dates_str = [d.strftime('%Y-%m-%d') if hasattr(d, 'strftime') else str(d) for d in volatility_30d.index]
+                
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=volatility_30d.index, 
+                    x=dates_str, 
                     y=volatility_30d.values*100, 
                     mode='lines',
                     name='30-Day Volatility',
@@ -553,13 +561,17 @@ else:
                 st.subheader("Return Statistics")
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    st.metric("Mean Return", f"{returns.mean()*100:.3f}%")
+                    mean_ret = float(returns.mean())*100
+                    st.metric("Mean Return", f"{mean_ret:.3f}%")
                 with col2:
-                    st.metric("Std Dev", f"{returns.std()*100:.3f}%")
+                    std_ret = float(returns.std())*100
+                    st.metric("Std Dev", f"{std_ret:.3f}%")
                 with col3:
-                    st.metric("Skewness", f"{returns.skew():.3f}")
+                    skew_ret = float(returns.skew())
+                    st.metric("Skewness", f"{skew_ret:.3f}")
                 with col4:
-                    st.metric("Kurtosis", f"{returns.kurtosis():.3f}")
+                    kurt_ret = float(returns.kurtosis())
+                    st.metric("Kurtosis", f"{kurt_ret:.3f}")
             
             except Exception as e:
                 st.error(f"Error in VAR analysis: {str(e)}")
