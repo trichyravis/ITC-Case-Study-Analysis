@@ -294,29 +294,16 @@ else:
             st.subheader("ITC Stock Price (5 Years)")
             
             try:
-                # Convert to lists explicitly - bulletproof approach
-                dates_list = [str(d.date()) for d in pd.to_datetime(itc_data.index)]
-                close_list = itc_data['Close'].values.tolist()
-                
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=dates_list, 
-                    y=close_list, 
-                    mode='lines', 
-                    name='ITC Price',
-                    line=dict(color='#003366', width=2),
-                    fill='tozeroy',
-                    fillcolor='rgba(0, 51, 102, 0.1)'
-                ))
-                fig.update_layout(
-                    title="ITC Stock Price History",
-                    xaxis_title="Date",
-                    yaxis_title="Price (INR)",
-                    height=400,
-                    template='plotly_white',
-                    hovermode='x unified'
-                )
-                st.plotly_chart(fig)
+                # Use px.line for simplicity - more reliable
+                df_chart = pd.DataFrame({
+                    'Date': itc_data.index,
+                    'Price': itc_data['Close'].values
+                })
+                fig = px.line(df_chart, x='Date', y='Price', 
+                             title='ITC Stock Price History',
+                             labels={'Price': 'Price (INR)'})
+                fig.update_layout(height=400, hovermode='x unified', template='plotly_white')
+                st.plotly_chart(fig, use_container_width=True)
                 
                 # Show metrics
                 current_price = float(itc_data['Close'].iloc[-1])
@@ -349,7 +336,7 @@ else:
                     st.metric("Avg Volume (20d)", f"{volume_avg:,.0f}")
                 
             except Exception as e:
-                st.error(f"Error displaying market data: {str(e)}")
+                st.error(f"Error: {str(e)}")
                 
                 # Metrics
                 current_price = float(itc_data['Close'].iloc[-1])
@@ -433,47 +420,20 @@ else:
                 # Moving averages chart
                 st.subheader("Moving Averages Chart")
                 
-                # Convert to lists explicitly
-                dates_list = [str(d.date()) for d in pd.to_datetime(itc_data.index)]
-                price_list = itc_data['Close'].values.tolist()
-                ma20_list = itc_data['Close'].rolling(20).mean().values.tolist()
-                ma50_list = itc_data['Close'].rolling(50).mean().values.tolist()
-                ma200_list = itc_data['Close'].rolling(200).mean().values.tolist()
+                # Create dataframe for plotting
+                df_ma = pd.DataFrame({
+                    'Date': itc_data.index,
+                    'Price': itc_data['Close'].values,
+                    '20-Day MA': itc_data['Close'].rolling(20).mean().values,
+                    '50-Day MA': itc_data['Close'].rolling(50).mean().values,
+                    '200-Day MA': itc_data['Close'].rolling(200).mean().values
+                })
                 
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=dates_list, 
-                    y=price_list, 
-                    name='Price', 
-                    line=dict(color='black', width=1.5)
-                ))
-                fig.add_trace(go.Scatter(
-                    x=dates_list, 
-                    y=ma20_list,
-                    name='20-Day MA', 
-                    line=dict(color='orange', width=2)
-                ))
-                fig.add_trace(go.Scatter(
-                    x=dates_list, 
-                    y=ma50_list,
-                    name='50-Day MA', 
-                    line=dict(color='blue', width=2)
-                ))
-                fig.add_trace(go.Scatter(
-                    x=dates_list, 
-                    y=ma200_list,
-                    name='200-Day MA', 
-                    line=dict(color='red', width=2)
-                ))
-                fig.update_layout(
-                    title="Price with Moving Averages", 
-                    xaxis_title="Date", 
-                    yaxis_title="Price (INR)", 
-                    height=400,
-                    template='plotly_white',
-                    hovermode='x unified'
-                )
-                st.plotly_chart(fig)
+                fig = px.line(df_ma, x='Date', y=['Price', '20-Day MA', '50-Day MA', '200-Day MA'],
+                             title='Price with Moving Averages',
+                             labels={'value': 'Price (INR)', 'variable': 'Series'})
+                fig.update_layout(height=400, hovermode='x unified', template='plotly_white')
+                st.plotly_chart(fig, use_container_width=True)
             
             except Exception as e:
                 st.error(f"Error in forecast: {str(e)}")
@@ -513,31 +473,19 @@ else:
                 # Volatility chart
                 st.subheader("Rolling 30-Day Volatility Trend")
                 
-                # Convert to lists explicitly
-                vol_dates = [str(d.date()) for d in pd.to_datetime(volatility_30d.index)]
-                vol_values = (volatility_30d.values * 100).tolist()
+                # Create dataframe for volatility chart
+                df_vol = pd.DataFrame({
+                    'Date': volatility_30d.index,
+                    'Volatility': volatility_30d.values * 100
+                })
                 
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=vol_dates, 
-                    y=vol_values, 
-                    mode='lines',
-                    name='30-Day Volatility',
-                    line=dict(color='#FF6B6B', width=2),
-                    fill='tozeroy',
-                    fillcolor='rgba(255, 107, 107, 0.2)'
-                ))
+                fig = px.line(df_vol, x='Date', y='Volatility',
+                             title='Volatility Over Time (Annualized %)',
+                             labels={'Volatility': 'Volatility (%)'})
                 fig.add_hline(y=avg_vol, line_dash="dash", line_color="blue", 
                              annotation_text=f"Average: {avg_vol:.2f}%")
-                fig.update_layout(
-                    title="Volatility Over Time (Annualized %)",
-                    xaxis_title="Date",
-                    yaxis_title="Volatility (%)",
-                    height=400,
-                    template='plotly_white',
-                    hovermode='x unified'
-                )
-                st.plotly_chart(fig)
+                fig.update_layout(height=400, hovermode='x unified', template='plotly_white')
+                st.plotly_chart(fig, use_container_width=True)
                 
                 # Volatility distribution
                 st.subheader("Volatility Distribution")
