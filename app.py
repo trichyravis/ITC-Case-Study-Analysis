@@ -289,22 +289,14 @@ else:
             st.subheader("ITC Stock Price (5 Years)")
             
             try:
-                # Reset index to get dates as a column
-                df_plot = itc_data.reset_index()
-                
-                # Rename only the date column (first column from index)
-                df_plot.rename(columns={df_plot.columns[0]: 'Date'}, inplace=True)
-                
-                # Convert date to string format
-                df_plot['Date'] = pd.to_datetime(df_plot['Date']).dt.strftime('%Y-%m-%d')
-                
-                # Get Close price (handle different possible column names)
-                close_col = 'Close' if 'Close' in df_plot.columns else df_plot.columns[4]
+                # Simple direct approach - just use the data as-is
+                close_prices = itc_data['Close']
+                dates = close_prices.index
                 
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=df_plot['Date'], 
-                    y=df_plot[close_col], 
+                    x=dates, 
+                    y=close_prices.values, 
                     mode='lines', 
                     name='ITC Price',
                     line=dict(color='#003366', width=2),
@@ -402,47 +394,38 @@ else:
                 
                 # Moving averages chart
                 st.subheader("Moving Averages Chart")
-                ma_20_vals = itc_data['Close'].rolling(20).mean()
-                ma_50_vals = itc_data['Close'].rolling(50).mean()
-                ma_200_vals = itc_data['Close'].rolling(200).mean()
                 
-                # Reset index to get proper dates
-                df_plot = itc_data.reset_index()
-                df_plot.rename(columns={df_plot.columns[0]: 'Date'}, inplace=True)
+                # Calculate moving averages
+                ma_20 = itc_data['Close'].rolling(20).mean()
+                ma_50 = itc_data['Close'].rolling(50).mean()
+                ma_200 = itc_data['Close'].rolling(200).mean()
                 
-                # Convert date to string format
-                df_plot['Date'] = pd.to_datetime(df_plot['Date']).dt.strftime('%Y-%m-%d')
-                
-                # Get Close price column
-                close_col = 'Close' if 'Close' in df_plot.columns else df_plot.columns[4]
-                
-                # Add moving averages
-                df_plot['MA20'] = ma_20_vals.values
-                df_plot['MA50'] = ma_50_vals.values
-                df_plot['MA200'] = ma_200_vals.values
+                # Get dates from index
+                dates = itc_data.index
+                close_prices = itc_data['Close'].values
                 
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=df_plot['Date'], 
-                    y=df_plot[close_col], 
+                    x=dates, 
+                    y=close_prices, 
                     name='Price', 
                     line=dict(color='black', width=1.5)
                 ))
                 fig.add_trace(go.Scatter(
-                    x=df_plot['Date'], 
-                    y=df_plot['MA20'],
+                    x=dates, 
+                    y=ma_20.values,
                     name='20-Day MA', 
                     line=dict(color='orange', width=2)
                 ))
                 fig.add_trace(go.Scatter(
-                    x=df_plot['Date'], 
-                    y=df_plot['MA50'],
+                    x=dates, 
+                    y=ma_50.values,
                     name='50-Day MA', 
                     line=dict(color='blue', width=2)
                 ))
                 fig.add_trace(go.Scatter(
-                    x=df_plot['Date'], 
-                    y=df_plot['MA200'],
+                    x=dates, 
+                    y=ma_200.values,
                     name='200-Day MA', 
                     line=dict(color='red', width=2)
                 ))
@@ -494,19 +477,14 @@ else:
                 # Volatility chart
                 st.subheader("Rolling 30-Day Volatility Trend")
                 
-                # Reset index to get proper dates
-                vol_plot = volatility_30d.reset_index()
-                vol_plot.rename(columns={vol_plot.columns[0]: 'Date'}, inplace=True)
-                vol_plot.rename(columns={vol_plot.columns[1]: 'Volatility'}, inplace=True)
-                
-                # Convert date to string format
-                vol_plot['Date'] = pd.to_datetime(vol_plot['Date']).dt.strftime('%Y-%m-%d')
-                vol_plot['Volatility'] = vol_plot['Volatility'] * 100
+                # Get dates from volatility series index
+                dates = volatility_30d.index
+                vol_values = volatility_30d.values * 100
                 
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=vol_plot['Date'], 
-                    y=vol_plot['Volatility'], 
+                    x=dates, 
+                    y=vol_values, 
                     mode='lines',
                     name='30-Day Volatility',
                     line=dict(color='#FF6B6B', width=2),
