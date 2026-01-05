@@ -1,2 +1,7 @@
 
-streamlit==1.32.0
+streamlit
+pandas
+numpy
+plotly
+yfinance
+openpyxl
