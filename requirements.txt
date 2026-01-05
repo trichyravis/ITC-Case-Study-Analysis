@@ -1,8 +1,2 @@
 
-streamlit
-pandas
-numpy
-plotly
-yfinance
-statsmodels
-arch
+streamlit==1.32.0
