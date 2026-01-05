@@ -124,16 +124,37 @@ def load_and_parse_screener(file):
     except:
         return None, None, None
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def get_itc_stock_data():
-    """Try to fetch ITC stock data"""
-    try:
-        itc_data = yf.download('ITC.NS', period='5y', progress=False, threads=False)
-        if itc_data is not None and len(itc_data) > 50 and 'Close' in itc_data.columns:
-            return itc_data
-        return None
-    except:
-        return None
+    """Fetch ITC stock data with retry logic and rate limit handling"""
+    import time
+    
+    tickers_to_try = ['ITC.NS', 'ITC.BO']
+    
+    for ticker in tickers_to_try:
+        try:
+            # Suppress yfinance warnings
+            import warnings
+            warnings.filterwarnings('ignore')
+            
+            itc_data = yf.download(
+                ticker, 
+                period='5y', 
+                progress=False,
+                threads=False,
+                timeout=30
+            )
+            
+            if itc_data is not None and len(itc_data) > 100:
+                if 'Close' in itc_data.columns:
+                    return itc_data
+        except Exception as e:
+            continue
+        
+        # Small delay between attempts to avoid rate limiting
+        time.sleep(1)
+    
+    return None
 
 # ============================================================================
 # MAIN APP
@@ -255,110 +276,313 @@ else:
         if has_stock_data:
             st.subheader("ITC Stock Price (5 Years)")
             
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=itc_data.index, y=itc_data['Close'], mode='lines', 
-                                    name='ITC Price', line=dict(color='#003366', width=2)))
-            fig.update_layout(title="ITC Stock Price", xaxis_title="Date", yaxis_title="Price (INR)", height=400)
-            st.plotly_chart(fig)
+            try:
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=itc_data.index, 
+                    y=itc_data['Close'], 
+                    mode='lines', 
+                    name='ITC Price',
+                    line=dict(color='#003366', width=2),
+                    fill='tozeroy',
+                    fillcolor='rgba(0, 51, 102, 0.1)'
+                ))
+                fig.update_layout(
+                    title="ITC Stock Price History",
+                    xaxis_title="Date",
+                    yaxis_title="Price (INR)",
+                    height=400,
+                    template='plotly_white'
+                )
+                st.plotly_chart(fig)
+                
+                # Metrics
+                current_price = float(itc_data['Close'].iloc[-1])
+                high_52w = float(itc_data['Close'].tail(252).max())
+                low_52w = float(itc_data['Close'].tail(252).min())
+                avg_price = float(itc_data['Close'].tail(252).mean())
+                
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Current Price", f"₹{current_price:.2f}")
+                with col2:
+                    st.metric("52-Week High", f"₹{high_52w:.2f}")
+                with col3:
+                    st.metric("52-Week Low", f"₹{low_52w:.2f}")
+                with col4:
+                    st.metric("52-Wk Avg", f"₹{avg_price:.2f}")
+                
+                # Additional metrics
+                st.divider()
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    price_change = current_price - itc_data['Close'].iloc[-252] if len(itc_data) > 252 else 0
+                    pct_change = (price_change / itc_data['Close'].iloc[-252] * 100) if len(itc_data) > 252 else 0
+                    st.metric("52-Week Change", f"₹{price_change:.2f}", f"{pct_change:+.2f}%")
+                with col2:
+                    today_change = current_price - itc_data['Close'].iloc[-2] if len(itc_data) > 1 else 0
+                    st.metric("Day Change", f"₹{today_change:.2f}")
+                with col3:
+                    volume_avg = float(itc_data['Volume'].tail(20).mean()) if 'Volume' in itc_data.columns else 0
+                    st.metric("Avg Volume (20d)", f"{volume_avg:,.0f}")
             
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Current Price", f"₹{float(itc_data['Close'].iloc[-1]):.2f}")
-            with col2:
-                st.metric("52-Week High", f"₹{float(itc_data['Close'].tail(252).max()):.2f}")
-            with col3:
-                st.metric("52-Week Low", f"₹{float(itc_data['Close'].tail(252).min()):.2f}")
+            except Exception as e:
+                st.error(f"Error displaying market data: {str(e)}")
         else:
-            st.warning("Stock price data not available. Please upload financial data from Screener.in.")
+            st.warning("📊 Stock price data not available from Yahoo Finance at this moment.")
+            st.info("The app works perfectly with your financial data. Stock data will be available when Yahoo Finance is accessible.")
     
     # ========================================================================
     # TAB 3: PRICE FORECAST
     # ========================================================================
     with tab3:
-        st.header("Price Forecast Analysis")
+        st.header("Price Forecast & Technical Analysis")
         
         if has_stock_data and len(itc_data) > 200:
-            ma_50 = float(itc_data['Close'].tail(50).mean())
-            ma_200 = float(itc_data['Close'].tail(200).mean())
+            try:
+                ma_20 = float(itc_data['Close'].tail(20).mean())
+                ma_50 = float(itc_data['Close'].tail(50).mean())
+                ma_200 = float(itc_data['Close'].tail(200).mean())
+                current_price = float(itc_data['Close'].iloc[-1])
+                
+                # Metrics
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("20-Day MA", f"₹{ma_20:.2f}")
+                with col2:
+                    st.metric("50-Day MA", f"₹{ma_50:.2f}")
+                with col3:
+                    st.metric("200-Day MA", f"₹{ma_200:.2f}")
+                with col4:
+                    st.metric("Current Price", f"₹{current_price:.2f}")
+                
+                st.divider()
+                
+                # Technical analysis
+                st.subheader("Technical Signals")
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    trend = "📈 Bullish" if ma_50 > ma_200 else "📉 Bearish"
+                    st.write(f"**Golden Cross:** {trend} (50-MA vs 200-MA)")
+                
+                with col2:
+                    price_trend = "📈 Above MA20" if current_price > ma_20 else "📉 Below MA20"
+                    st.write(f"**Price Position:** {price_trend}")
+                
+                with col3:
+                    ma_trend = "📈 Bullish" if ma_20 > ma_50 > ma_200 else "📉 Mixed/Bearish"
+                    st.write(f"**MA Alignment:** {ma_trend}")
+                
+                # Moving averages chart
+                st.subheader("Moving Averages Chart")
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=itc_data.index, y=itc_data['Close'], 
+                                        name='Price', line=dict(color='black', width=1)))
+                fig.add_trace(go.Scatter(x=itc_data.index, y=itc_data['Close'].rolling(20).mean(),
+                                        name='20-Day MA', line=dict(color='orange', width=2)))
+                fig.add_trace(go.Scatter(x=itc_data.index, y=itc_data['Close'].rolling(50).mean(),
+                                        name='50-Day MA', line=dict(color='blue', width=2)))
+                fig.add_trace(go.Scatter(x=itc_data.index, y=itc_data['Close'].rolling(200).mean(),
+                                        name='200-Day MA', line=dict(color='red', width=2)))
+                fig.update_layout(title="Price with Moving Averages", xaxis_title="Date", 
+                                yaxis_title="Price (INR)", height=400)
+                st.plotly_chart(fig)
             
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("50-Day MA", f"₹{ma_50:.2f}")
-            with col2:
-                st.metric("200-Day MA", f"₹{ma_200:.2f}")
-            
-            st.write(f"**Trend:** {'Bullish (50-MA > 200-MA)' if ma_50 > ma_200 else 'Bearish (50-MA < 200-MA)'}")
+            except Exception as e:
+                st.error(f"Error in forecast: {str(e)}")
         else:
-            st.info("Stock data required for forecasting")
+            st.info("📊 Stock data required for technical analysis")
     
     # ========================================================================
     # TAB 4: VOLATILITY
     # ========================================================================
     with tab4:
-        st.header("Volatility Analysis")
+        st.header("Volatility Analysis (Risk Measurement)")
         
         if has_stock_data and len(itc_data) > 30:
-            returns = itc_data['Close'].pct_change().dropna()
-            volatility = returns.rolling(30).std() * np.sqrt(252)
+            try:
+                returns = itc_data['Close'].pct_change().dropna()
+                volatility_30d = returns.rolling(30).std() * np.sqrt(252)
+                volatility_60d = returns.rolling(60).std() * np.sqrt(252)
+                volatility_all = returns.std() * np.sqrt(252)
+                
+                # Key metrics
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    current_vol = float(volatility_30d.iloc[-1])*100
+                    st.metric("Current Vol (30d)", f"{current_vol:.2f}%")
+                with col2:
+                    avg_vol = float(volatility_30d.mean())*100
+                    st.metric("Avg Vol (30d)", f"{avg_vol:.2f}%")
+                with col3:
+                    max_vol = float(volatility_30d.max())*100
+                    st.metric("Peak Vol (30d)", f"{max_vol:.2f}%")
+                with col4:
+                    annual_vol = float(volatility_all)*100
+                    st.metric("Annual Vol", f"{annual_vol:.2f}%")
+                
+                st.divider()
+                
+                # Volatility chart
+                st.subheader("Rolling 30-Day Volatility Trend")
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=volatility_30d.index, 
+                    y=volatility_30d.values*100, 
+                    mode='lines',
+                    name='30-Day Volatility',
+                    line=dict(color='#FF6B6B', width=2),
+                    fill='tozeroy',
+                    fillcolor='rgba(255, 107, 107, 0.2)'
+                ))
+                fig.add_hline(y=avg_vol, line_dash="dash", line_color="blue", 
+                             annotation_text=f"Average: {avg_vol:.2f}%")
+                fig.update_layout(
+                    title="Volatility Over Time (Annualized %)",
+                    xaxis_title="Date",
+                    yaxis_title="Volatility (%)",
+                    height=400
+                )
+                st.plotly_chart(fig)
+                
+                # Volatility distribution
+                st.subheader("Volatility Distribution")
+                fig = px.histogram(volatility_30d[volatility_30d.notna()]*100, nbins=40,
+                                  title="Distribution of 30-Day Volatility",
+                                  labels={'value': 'Volatility (%)', 'count': 'Frequency'})
+                st.plotly_chart(fig)
             
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=volatility.index, y=volatility.values, mode='lines', 
-                                    name='Volatility', line=dict(color='orange')))
-            fig.update_layout(title="30-Day Rolling Volatility", xaxis_title="Date", 
-                            yaxis_title="Volatility", height=400)
-            st.plotly_chart(fig)
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Current Vol", f"{float(volatility.iloc[-1])*100:.2f}%")
-            with col2:
-                st.metric("Avg Vol", f"{float(volatility.mean())*100:.2f}%")
-            with col3:
-                st.metric("Max Vol", f"{float(volatility.max())*100:.2f}%")
+            except Exception as e:
+                st.error(f"Error in volatility analysis: {str(e)}")
         else:
-            st.info("Stock data required for volatility analysis")
+            st.info("📊 Stock data required for volatility analysis")
     
     # ========================================================================
     # TAB 5: VALUE AT RISK
     # ========================================================================
     with tab5:
-        st.header("Value at Risk (VAR)")
+        st.header("Value at Risk (VAR) Analysis")
         
         if has_stock_data and len(itc_data) > 30:
-            returns = itc_data['Close'].pct_change().dropna()
+            try:
+                returns = itc_data['Close'].pct_change().dropna()
+                
+                var_90 = float(returns.quantile(0.10))
+                var_95 = float(returns.quantile(0.05))
+                var_99 = float(returns.quantile(0.01))
+                
+                st.subheader("Daily Loss at Risk (Worst Case Scenario)")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("VAR (90%)", f"{var_90*100:.3f}%", 
+                             help="90% chance loss won't exceed this")
+                with col2:
+                    st.metric("VAR (95%)", f"{var_95*100:.3f}%",
+                             help="95% chance loss won't exceed this")
+                with col3:
+                    st.metric("VAR (99%)", f"{var_99*100:.3f}%",
+                             help="99% chance loss won't exceed this")
+                
+                st.info(f"💡 **Interpretation:** There is a 95% probability that daily losses won't exceed {abs(var_95*100):.2f}%")
+                
+                st.divider()
+                
+                # Return distribution
+                st.subheader("Daily Returns Distribution")
+                fig = px.histogram(
+                    returns*100, 
+                    nbins=50,
+                    title="Distribution of Daily Returns (%)",
+                    labels={'value': 'Daily Return (%)', 'count': 'Frequency'},
+                    color_discrete_sequence=['#003366']
+                )
+                fig.add_vline(x=var_95*100, line_dash="dash", line_color="red", 
+                             annotation_text=f"95% VAR: {var_95*100:.2f}%")
+                st.plotly_chart(fig)
+                
+                # Statistics
+                st.subheader("Return Statistics")
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Mean Return", f"{returns.mean()*100:.3f}%")
+                with col2:
+                    st.metric("Std Dev", f"{returns.std()*100:.3f}%")
+                with col3:
+                    st.metric("Skewness", f"{returns.skew():.3f}")
+                with col4:
+                    st.metric("Kurtosis", f"{returns.kurtosis():.3f}")
             
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("VAR 90%", f"{float(returns.quantile(0.10))*100:.2f}%")
-            with col2:
-                st.metric("VAR 95%", f"{float(returns.quantile(0.05))*100:.2f}%")
-            with col3:
-                st.metric("VAR 99%", f"{float(returns.quantile(0.01))*100:.2f}%")
-            
-            st.subheader("Return Distribution")
-            fig = px.histogram(x=returns, nbins=50, title="Daily Returns Distribution")
-            st.plotly_chart(fig)
+            except Exception as e:
+                st.error(f"Error in VAR analysis: {str(e)}")
         else:
-            st.info("Stock data required for VAR analysis")
+            st.info("📊 Stock data required for VAR analysis")
     
     # ========================================================================
     # TAB 6: EXPECTED SHORTFALL
     # ========================================================================
     with tab6:
-        st.header("Expected Shortfall (CVaR)")
+        st.header("Expected Shortfall (CVaR) - Tail Risk Analysis")
         
         if has_stock_data and len(itc_data) > 30:
-            returns = itc_data['Close'].pct_change().dropna()
-            var_95 = float(returns.quantile(0.05))
-            cvar_95 = float(returns[returns <= var_95].mean())
+            try:
+                returns = itc_data['Close'].pct_change().dropna()
+                
+                var_90 = float(returns.quantile(0.10))
+                var_95 = float(returns.quantile(0.05))
+                var_99 = float(returns.quantile(0.01))
+                
+                cvar_90 = float(returns[returns <= var_90].mean())
+                cvar_95 = float(returns[returns <= var_95].mean())
+                cvar_99 = float(returns[returns <= var_99].mean())
+                
+                st.subheader("Average Loss Beyond VAR (Tail Risk)")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("CVaR (90%)", f"{cvar_90*100:.3f}%",
+                             help="Average loss when exceeding 90% VAR")
+                with col2:
+                    st.metric("CVaR (95%)", f"{cvar_95*100:.3f}%",
+                             help="Average loss when exceeding 95% VAR")
+                with col3:
+                    st.metric("CVaR (99%)", f"{cvar_99*100:.3f}%",
+                             help="Average loss when exceeding 99% VAR")
+                
+                st.info(f"💡 **Interpretation:** If the 95% VAR is breached, the average loss will be {abs(cvar_95*100):.2f}%")
+                
+                st.divider()
+                
+                # Comparison table
+                st.subheader("VAR vs CVaR Comparison")
+                comparison_data = {
+                    'Confidence Level': ['90%', '95%', '99%'],
+                    'VAR (%)': [f"{var_90*100:.3f}", f"{var_95*100:.3f}", f"{var_99*100:.3f}"],
+                    'CVaR (%)': [f"{cvar_90*100:.3f}", f"{cvar_95*100:.3f}", f"{cvar_99*100:.3f}"],
+                    'Difference': [f"{(cvar_90-var_90)*100:.3f}", 
+                                  f"{(cvar_95-var_95)*100:.3f}",
+                                  f"{(cvar_99-var_99)*100:.3f}"]
+                }
+                st.dataframe(pd.DataFrame(comparison_data), use_container_width=True)
+                
+                # Tail risk visualization
+                st.subheader("Tail Risk Visualization")
+                tail_returns = returns[returns <= var_95].dropna()
+                fig = px.histogram(
+                    tail_returns*100,
+                    nbins=30,
+                    title="Distribution of Returns Exceeding 95% VAR (Tail Risk)",
+                    labels={'value': 'Daily Return (%)', 'count': 'Frequency'},
+                    color_discrete_sequence=['#FF6B6B']
+                )
+                fig.add_vline(x=cvar_95*100, line_dash="dash", line_color="darkred",
+                             annotation_text=f"Average: {cvar_95*100:.2f}%")
+                st.plotly_chart(fig)
             
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("VAR 95%", f"{var_95*100:.2f}%")
-            with col2:
-                st.metric("CVaR 95%", f"{cvar_95*100:.2f}%")
+            except Exception as e:
+                st.error(f"Error in CVaR analysis: {str(e)}")
         else:
-            st.info("Stock data required for CVaR analysis")
+            st.info("📊 Stock data required for CVaR analysis")
     
     # ========================================================================
     # TAB 7: FINANCIAL RATIOS
