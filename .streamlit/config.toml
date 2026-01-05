@@ -4,15 +4,10 @@ primaryColor = "#003366"
 backgroundColor = "#f8f9fa"
 secondaryBackgroundColor = "#ffffff"
 textColor = "#1a1a1a"
-font = "sans serif"
-accentColor = "#FFD700"
 
 [client]
 toolbarMode = "viewer"
 showErrorDetails = true
-showSidebarNavigation = true
-allowDownloadAppAsApk = false
-hideTopBar = false
 
 [logger]
 level = "info"
@@ -22,10 +17,3 @@ port = 8501
 headless = false
 runOnSave = true
 maxUploadSize = 200
-enableXsrfProtection = true
-enableCORS = false
-serverAddress = "localhost"
-
-[deprecation]
-showPyplotGlobalUse = false
-showfileUploaderEncoding = false
